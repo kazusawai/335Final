@@ -1,0 +1,34 @@
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, 'credentialsDontPost/.env') })  
+
+const uri = process.env.MONGO_CONNECTION_STRING;
+
+ /* Our database and collection */
+ const databaseAndCollection = {db: "CMSC335DB", collection:"inputs"};
+
+/****** DO NOT MODIFY FROM THIS POINT ONE ******/
+const { MongoClient, ServerApiVersion } = require('mongodb');
+async function main() {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+}
+
+async function lookUpMany(client, databaseAndCollection) {
+    let filter = {};
+        const cursor = client.db(databaseAndCollection.db)
+        .collection(databaseAndCollection.collection)
+        .find(filter);
+
+ 
+
+    // Some Additional comparison query operators: $eq, $gt, $lt, $lte, $ne (not equal)
+    // Full listing at https://www.mongodb.com/docs/manual/reference/operator/query-comparison/
+    const result = await cursor.toArray();
+    let html = 'Thanks to everyone who participated <table style="border:1px solid black;"><tr><th style="border:1px solid black;">Name</th</tr>'; 
+        result.forEach((element) => { 
+                html += <tr><td style="border:1px solid black;">${element.name}</td></tr>; 
+                            }); 
+          html += '</table>';
+    console.log(result);
+}
+
+main().catch(console.error);

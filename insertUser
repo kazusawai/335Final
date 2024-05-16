@@ -1,0 +1,33 @@
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, 'credentialsDontPost/.env') }) 
+
+const uri = process.env.MONGO_CONNECTION_STRING;
+
+ /* Our database and collection */
+ const databaseAndCollection = {db: "CMSC335DB", collection:"inputs"};
+
+/****** DO NOT MODIFY FROM THIS POINT ONE ******/
+const { MongoClient, ServerApiVersion } = require('mongodb');
+async function main() {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+    try {
+        await client.connect();
+       
+        /* Inserting one movie */
+        console.log("***** Inserting one movie *****");
+        let user = {name: name, genre: genreName, age: age};
+        await insertUser(client, databaseAndCollection, user);
+
+    } catch (e) {
+        console.error(e);
+    } finally {
+        await client.close();
+    }
+}
+
+async function insertUser(client, databaseAndCollection, user) {
+    const result = await client.db(databaseAndCollection.db).collection(databaseAndCollection.collection).insertOne(user);
+}
+
+
+main().catch(console.error);

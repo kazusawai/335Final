@@ -4,17 +4,19 @@
 <head>
     <title>Welcome</title>
     <meta charset="utf-8">
+    <link rel="stylesheet" href="style.css" type = "text/css">
 </head>
 
 <body>
+    <div class="container">
     <form action="/users" method="post">
         <fieldset>
             <legend>
                 <strong>Welcome to Wrapped335!</strong>
             </legend>
-            <label>First Name: <input type="text" name="name" required></label><br><br>
+            <label>Full Name: <input type="text" name="name" required></label><br><br>
             <label>Enter your age: <input type="number" name="age" required></label><br>
-            Which Genres Top Songs do you want to see?<br>
+            Select a genre you want recommendations from?<br>
             <label><input type="radio" name="genreName" value="Pop" required>Pop</label><br>
             <label><input type="radio" name="genreName" value="Rap" required>Rap</label><br>
             <label><input type="radio" name="genreName" value="RNB" required>RNB</label><br>

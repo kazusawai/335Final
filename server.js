@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const bodyParser = require('body-parser');
 const https = require('https');
+const axios = require('axios');
 const querystring = require('querystring');
 require('dotenv').config({ path: path.resolve(__dirname, 'credentialsDontPost/.env') });
 
@@ -26,109 +27,36 @@ async function insertUser(client, databaseAndCollection, user) {
     throw error;
   }
 }
-
 async function getAccessToken() {
-  return new Promise((resolve, reject) => {
+
     const clientId = process.env.SPOTIFY_CLIENT_ID;
     const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
 
-    const postData = querystring.stringify({
-      grant_type: 'client_credentials'
-    });
+    const token = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    const postData = querystring.stringify({ grant_type: 'client_credentials' });
 
-    const options = {
-      hostname: 'accounts.spotify.com',
-      port: 443,
-      path: '/api/token',
-      method: 'POST',
+    const response = await axios.post('https://accounts.spotify.com/api/token', postData, {
       headers: {
-        'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Content-Length': postData.length
+        'Authorization': `Basic ${token}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
       }
-    };
-
-    const req = https.request(options, (res) => {
-      let data = '';
-
-      res.on('data', (chunk) => {
-        data += chunk;
-      });
-
-      res.on('end', () => {
-        console.log(`Spotify token response status: ${res.statusCode}`);
-        console.log(`Spotify token response headers: ${JSON.stringify(res.headers)}`);
-        console.log(`Spotify token response body: ${data}`);
-
-        if (res.statusCode === 200) {
-          resolve(JSON.parse(data).access_token);
-        } else {
-          console.error(`Error fetching access token: ${res.statusCode} - ${res.statusMessage}`);
-          console.error(`Response body: ${data}`);
-          reject(JSON.parse(data));
-        }
-      });
     });
 
-    req.on('error', (e) => {
-      console.error(`HTTPS request error: ${e.message}`);
-      reject(e);
-    });
-
-    req.write(postData);
-    req.end();
-  });
+    return response.data.access_token;
 }
 
+
 async function getTopTracks(genre, token) {
-  return new Promise((resolve, reject) => {
-    const options = {
-      hostname: 'api.spotify.com',
-      port: 443,
-      path: `/v1/search?q=genre:${encodeURIComponent(genre)}&type=track&limit=5`,
-      method: 'GET',
+    const response = await axios.get('https://api.spotify.com/v1/search', {
+      params: {
+        q: `genre:${genre}`,
+        type: 'track',
+      },
       headers: {
         'Authorization': `Bearer ${token}`
       }
-    };
-
-    const req = https.request(options, (res) => {
-      let data = '';
-
-      res.on('data', (chunk) => {
-        data += chunk;
-      });
-
-      res.on('end', () => {
-        console.log(`Spotify API response status: ${res.statusCode}`);
-        console.log(`Spotify API response headers: ${JSON.stringify(res.headers)}`);
-        console.log(`Spotify API response body: ${data}`);
-
-        if (res.statusCode === 200) {
-          try {
-            resolve(JSON.parse(data).tracks.items);
-          } catch (error) {
-            console.error(`Error parsing JSON response: ${error.message}`);
-            reject(error);
-          }
-        } else {
-          console.error(`Error fetching top tracks: ${res.statusCode} - ${res.statusMessage}`);
-          try {
-            reject(JSON.parse(data));
-          } catch (error) {
-            reject(data);
-          }
-        }
-      });
     });
-
-    req.on('error', (e) => {
-      console.error(`HTTPS request error: ${e.message}`);
-      reject(e);
-    });
-
-    req.end();
-  });
+    return response.data.tracks.items;
 }
 
 async function lookUpMany(client, databaseAndCollection) {
@@ -145,6 +73,7 @@ async function lookUpMany(client, databaseAndCollection) {
     throw error;
   }
 }
+app.use(express.static(__dirname));
 app.get('/', (req, res) => {
   res.render('welcome');
 });

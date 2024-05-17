@@ -4,5 +4,17 @@ body {
 
 html {
   color: purple;
+  /* text-align: center; */
+}
+
+body {
   text-align: center;
+}
+
+table {
+  margin: auto;
+}
+
+li{
+  margin: auto;
 }

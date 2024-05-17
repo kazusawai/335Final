@@ -2,8 +2,6 @@ const express = require('express');
 const path = require('path');
 const bodyParser = require('body-parser');
 const https = require('https');
-const axios = require('axios');
-const querystring = require('querystring');
 require('dotenv').config({ path: path.resolve(__dirname, 'credentialsDontPost/.env') });
 
 const app = express();
@@ -27,41 +25,38 @@ async function insertUser(client, databaseAndCollection, user) {
     throw error;
   }
 }
+
+const id = process.env.SPOTIFY_CLIENT_ID;
+const secret = process.env.SPOTIFY_CLIENT_SECRET;
+
 async function getAccessToken() {
+    const params = new URLSearchParams();
+    params.append("grant_type", "client_credentials");
 
-    const clientId = process.env.SPOTIFY_CLIENT_ID;
-    const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
-
-    const token = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-    const postData = querystring.stringify({ grant_type: 'client_credentials' });
-
-    const response = await axios.post('https://accounts.spotify.com/api/token', postData, {
-      headers: {
-        'Authorization': `Basic ${token}`,
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
+    const result = await fetch("https://accounts.spotify.com/api/token", {
+        method: "POST",
+        headers: {
+            "Authorization": "Basic " + btoa(id + ":" + secret)
+        },
+        body: params
     });
-
-    return response.data.access_token;
+    
+    return (await result.json()).access_token;
 }
-
 
 async function getTopTracks(genre, token) {
-    const response = await axios.get('https://api.spotify.com/v1/search', {
-      params: {
-        q: `genre:${genre}`,
-        type: 'track',
-      },
+  const result = await fetch(`https://api.spotify.com/v1/search?q=genre:${genre}&type=track`, {
+      method: 'GET',
       headers: {
-        'Authorization': `Bearer ${token}`
+          'Authorization': 'Bearer ' + token,
       }
-    });
-    return response.data.tracks.items;
+  });
+  return (await result.json()).tracks.items;
 }
 
-async function lookUpMany(client, databaseAndCollection) {
+async function lookUpMany(client, databaseAndCollection, genreName) {
   try {
-    const filter = {};
+    let filter = {genre : {$eq: genreName}}; 
     const cursor = client.db(databaseAndCollection.db)
       .collection(databaseAndCollection.collection)
       .find(filter);
@@ -73,10 +68,13 @@ async function lookUpMany(client, databaseAndCollection) {
     throw error;
   }
 }
+
 app.use(express.static(__dirname));
+
 app.get('/', (req, res) => {
   res.render('welcome');
 });
+
 app.post('/users', async (req, res) => {
   const { name, age, genreName } = req.body;
 
@@ -96,9 +94,8 @@ app.post('/users', async (req, res) => {
     });
     html += `</ul>`;
 
-    // Perform the lookup and include the results in the HTML
-    const users = await lookUpMany(client, databaseAndCollection);
-    html += `<h2>Shoutout to all our users!</h2><table style="border:1px solid black;"><tr><th style="border:1px solid black;">Name</th></tr>`;
+    const users = await lookUpMany(client, databaseAndCollection, genreName);
+    html += `<h2>Other Users Interested In The Genre You Selected</h2><table style="border:1px solid black;"><tr><th style="border:1px solid black;">Name</th></tr>`;
     users.forEach(user => {
       html += `<tr><td style="border:1px solid black;">${user.name}</td></tr>`;
     });
